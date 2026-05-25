@@ -232,6 +232,17 @@ const VALID = {
 let lines, pending, overrideCount, stream;
 
 async function init() {
+  if (!window.ANTHROPIC_KEY) {
+    const stored = sessionStorage.getItem('qf_ak');
+    if (stored) { window.ANTHROPIC_KEY = stored; }
+    else {
+      const key = prompt('Anthropic API key (sk-ant-...):\nThis is stored only in this browser session.');
+      if (key && key.trim().startsWith('sk-')) {
+        window.ANTHROPIC_KEY = key.trim();
+        sessionStorage.setItem('qf_ak', key.trim());
+      }
+    }
+  }
   lines = LINES.map(l => ({...l, confirmed:false, override:false}));
   pending = null; overrideCount = 0;
   document.getElementById('app').style.display = 'flex';
@@ -346,7 +357,12 @@ async function captureAndRead() {
   try {
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': window.ANTHROPIC_KEY || '',
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 100,
